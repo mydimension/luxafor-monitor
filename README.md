@@ -1,6 +1,6 @@
 # Luxafor Monitor
 
-[![CI](https://github.com/OWNER/luxafor-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/luxafor-monitor/actions/workflows/ci.yml)
+[![CI](https://github.com/mydimension/luxafor-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/mydimension/luxafor-monitor/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A tiny macOS menu bar app that watches for meetings in **Zoom** and
@@ -162,7 +162,7 @@ Each release includes the DMG plus a `.sig`/certificate bundle and a
 cosign verify-blob \
   --certificate LuxaforMonitor-<version>.dmg.pem \
   --signature   LuxaforMonitor-<version>.dmg.sig \
-  --certificate-identity-regexp "https://github.com/OWNER/luxafor-monitor/.github/workflows/release.yml@.*" \
+  --certificate-identity-regexp "https://github.com/mydimension/luxafor-monitor/.github/workflows/release.yml@.*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   LuxaforMonitor-<version>.dmg
 ```
@@ -178,7 +178,7 @@ shasum -a 256 -c SHA256SUMS
 Requires Xcode 16 / a Swift 6.3 toolchain and macOS 13+.
 
 ```sh
-git clone https://github.com/OWNER/luxafor-monitor.git
+git clone https://github.com/mydimension/luxafor-monitor.git
 cd luxafor-monitor
 swift build
 swift test
