@@ -25,11 +25,15 @@ clean-room implementation derived from publicly documented protocol
 information. No source code, headers, or binaries from Luxafor's own SDKs
 or drivers were copied, decompiled, or otherwise incorporated.
 
-<!-- TODO: integrator to fill in exact citation(s) from LuxaforKit's
-     implementation notes -- e.g. the specific public protocol
-     documentation, community reverse-engineering write-ups, or vendor
-     spec pages that were consulted when implementing the HID commands
-     in Sources/LuxaforKit. -->
+The USB vendor ID (0x04D8, Microchip Technology Inc.), the Luxafor Flag's
+product ID (0xF372), and the "set static color" HID output report layout
+were cross-checked across multiple independent public sources describing
+the Luxafor protocol, including pyluxa4's published USB API documentation,
+the MarcMeszaros/luxafor-go project, fmartingr/pyluxafor's udev rules, and
+JnyJny/busylight's device table. Support for other Luxafor models
+(Mini/Multi/Orb/Mute) is based on secondary references that were not
+independently verified against real hardware; see
+Sources/LuxaforKit/LuxaforProtocol.swift for details.
 
 "Luxafor" is a trademark of its respective owner. This project is not
 affiliated with, endorsed by, or sponsored by Luxafor.

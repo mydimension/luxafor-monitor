@@ -3,40 +3,29 @@ import AppKit
 import LuxaforKit
 import MeetingDetectionKit
 
-// MARK: - No-op device placeholder
-
-/// Local no-op stand-in for a real `LuxaforDevice`, used only so this
-/// module has something concrete to construct `AppState` with while the
-/// real USB HID driver is being built in a separate worktree.
-///
-/// TODO(integration): replace with `LuxaforKit.LuxaforUSBDevice()`.
-final class NoOpLuxaforDevice: LuxaforDevice {
-    private(set) var isConnected: Bool = false
-
-    func connect() throws {
-        isConnected = true
-    }
-
-    func setColor(_ color: LuxaforColor) throws {
-        // Intentionally a no-op: no real hardware backs this placeholder.
-    }
-
-    func turnOff() throws {
-        try setColor(.off)
-    }
-}
+/// Bundle identifiers of meeting apps `MediaUsageDetector` should attribute
+/// mic/camera usage to. Kept in sync with the apps `ZoomDetector`/
+/// `TeamsDetector` watch.
+private let watchedMeetingAppBundleIdentifiers = [
+    "us.zoom.xos",
+    "com.microsoft.teams2",
+    "com.microsoft.teams",
+]
 
 // MARK: - App entry point
 
 @main
 struct LuxaforMonitorApp: App {
     @StateObject private var appState: AppState
+    @StateObject private var permissionsManager: PermissionsManager
+    @StateObject private var detectionCoordinator: DetectionCoordinator
 
     // MARK: Preferences state
     //
-    // TODO(integration): persist these (e.g. via `@AppStorage` or a small
-    // dedicated settings store) instead of in-memory `@State`, and use them
-    // to configure the real detection stack -- see the TODO block below.
+    // TODO(follow-up): persist these (e.g. via `@AppStorage` or a small
+    // dedicated settings store), and make toggling a detector or the poll
+    // interval in Preferences live-reconfigure `detectionCoordinator`
+    // instead of only taking effect on next launch.
     @State private var detectorEnabled: [String: Bool] = [
         "Zoom": true,
         "Microsoft Teams": true,
@@ -46,49 +35,30 @@ struct LuxaforMonitorApp: App {
     @State private var colorForInMeeting: LuxaforColor = .red
     @State private var colorForNotInMeeting: LuxaforColor = .green
 
-    // MARK: Permissions placeholder state
-    //
-    // TODO(integration): replace this block with a real
-    // `MeetingDetectionKit.PermissionsManager`:
-    //
-    //   @StateObject private var permissionsManager = PermissionsManager()
-    //
-    // and thread `permissionsManager.accessibilityGranted`,
-    // `.cameraGranted`, `.microphoneGranted`,
-    // `.requestAccessibilityPermission()`, `.requestMediaPermissions()`
-    // (async), and `.openAccessibilitySettings()` through to
-    // `MenuBarView`/`OnboardingView` in place of the placeholders below.
-    // Also call `permissionsManager.refreshStatus()` on scene activation.
-    @State private var accessibilityGranted = true
-    @State private var cameraGranted = true
-    @State private var microphoneGranted = true
-
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     init() {
-        // TODO(integration): construct AppState with the real device and
-        // start a real detection loop, e.g.:
-        //
-        //   let device = LuxaforUSBDevice()
-        //   let appState = AppState(device: device)
-        //   let coordinator = DetectionCoordinator(
-        //       detectors: [ZoomDetector(), TeamsDetector(), MediaUsageDetector(relevantBundleIdentifiers: [...])],
-        //       pollInterval: pollInterval
-        //   )
-        //   coordinator.$fusedStatus
-        //       .combineLatest(coordinator.$latestReadings)
-        //       .sink { status, readings in appState.updateDetectedStatus(status, readings: readings) }
-        //       .store(in: &cancellables)
-        //   coordinator.start()
-        //
-        // (Respecting `detectorEnabled` when building the `detectors` array,
-        // and keeping a reference to `coordinator` / the Combine
-        // subscription alive for the app's lifetime.)
-        _appState = StateObject(wrappedValue: AppState(
-            device: NoOpLuxaforDevice(),
+        let device = LuxaforUSBDevice()
+        let state = AppState(
+            device: device,
             colorForInMeeting: .red,
             colorForNotInMeeting: .green
-        ))
+        )
+
+        let coordinator = DetectionCoordinator(
+            detectors: [
+                ZoomDetector(),
+                TeamsDetector(),
+                MediaUsageDetector(relevantBundleIdentifiers: watchedMeetingAppBundleIdentifiers),
+            ],
+            pollInterval: 3.0
+        )
+        state.observeDetectionCoordinator(coordinator)
+        coordinator.start()
+
+        _appState = StateObject(wrappedValue: state)
+        _detectionCoordinator = StateObject(wrappedValue: coordinator)
+        _permissionsManager = StateObject(wrappedValue: PermissionsManager())
     }
 
     var body: some Scene {
@@ -98,6 +68,7 @@ struct LuxaforMonitorApp: App {
                 permissions: permissionsStatus,
                 openPreferences: openPreferencesWindow
             )
+            .onAppear { permissionsManager.refreshStatus() }
         } label: {
             Image(systemName: "flag.fill")
                 .foregroundStyle(appState.currentColor.swiftUIColor)
@@ -107,12 +78,13 @@ struct LuxaforMonitorApp: App {
         Window("Welcome to Luxafor Monitor", id: "onboarding") {
             OnboardingWindowContent(
                 hasCompletedOnboarding: $hasCompletedOnboarding,
-                accessibilityGranted: accessibilityGranted,
-                mediaGranted: cameraGranted && microphoneGranted,
+                accessibilityGranted: permissionsManager.accessibilityGranted,
+                mediaGranted: permissionsManager.cameraGranted && permissionsManager.microphoneGranted,
                 requestAccessibilityPermission: permissionsStatus.requestAccessibilityPermission,
                 requestMediaPermissions: permissionsStatus.requestMediaPermissions,
                 openAccessibilitySettings: permissionsStatus.openAccessibilitySettings
             )
+            .onAppear { permissionsManager.refreshStatus() }
         }
         .windowResizability(.contentSize)
 
@@ -128,17 +100,17 @@ struct LuxaforMonitorApp: App {
 
     private var permissionsStatus: PermissionsStatus {
         PermissionsStatus(
-            accessibilityGranted: accessibilityGranted,
-            cameraGranted: cameraGranted,
-            microphoneGranted: microphoneGranted,
+            accessibilityGranted: permissionsManager.accessibilityGranted,
+            cameraGranted: permissionsManager.cameraGranted,
+            microphoneGranted: permissionsManager.microphoneGranted,
             requestAccessibilityPermission: {
-                // TODO(integration): permissionsManager.requestAccessibilityPermission()
+                permissionsManager.requestAccessibilityPermission()
             },
             requestMediaPermissions: {
-                // TODO(integration): Task { await permissionsManager.requestMediaPermissions() }
+                Task { await permissionsManager.requestMediaPermissions() }
             },
             openAccessibilitySettings: {
-                // TODO(integration): permissionsManager.openAccessibilitySettings()
+                permissionsManager.openAccessibilitySettings()
             }
         )
     }

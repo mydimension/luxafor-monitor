@@ -31,6 +31,7 @@ final class AppState: ObservableObject {
     private let device: LuxaforDevice
     private let colorForInMeeting: LuxaforColor
     private let colorForNotInMeeting: LuxaforColor
+    private var cancellables: Set<AnyCancellable> = []
 
     private static let log = Logger(subsystem: "com.luxafor-monitor.app", category: "AppState")
 
@@ -71,6 +72,20 @@ final class AppState: ObservableObject {
 
     func setOverride(_ mode: OverrideMode) {
         overrideMode = mode
+    }
+
+    /// Subscribes to a `DetectionCoordinator`'s fused status and per-app
+    /// readings for the lifetime of this `AppState`, forwarding each
+    /// emission to `updateDetectedStatus(_:readings:)`. The coordinator
+    /// itself is not started here — call `start()` on it separately once
+    /// it's fully configured.
+    func observeDetectionCoordinator(_ coordinator: DetectionCoordinator) {
+        coordinator.$fusedStatus
+            .combineLatest(coordinator.$latestReadings)
+            .sink { [weak self] status, readings in
+                self?.updateDetectedStatus(status, readings: readings)
+            }
+            .store(in: &cancellables)
     }
 
     private func recomputeColor() {
