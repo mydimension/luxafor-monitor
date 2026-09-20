@@ -6,3 +6,10 @@ DerivedData/
 .DS_Store
 *.dmg
 *.app
+
+# Local packaging output staged by Scripts/build-app.sh, package-dmg.sh, etc.
+dist/
+*.sig
+*.pem
+*.sha256
+SHA256SUMS

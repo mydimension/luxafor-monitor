@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # to create the GitHub Release and upload assets
+  id-token: write   # for cosign keyless (OIDC) signing
+
+jobs:
+  release:
+    name: Build, sign, and release
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release binary
+        run: swift build -c release --product LuxaforMonitorApp
+
+      - name: Assemble .app bundle
+        run: Scripts/build-app.sh "${{ steps.version.outputs.version }}" dist
+        env:
+          SKIP_SWIFT_BUILD: "1"
+
+      - name: Ad-hoc code-sign the app
+        run: Scripts/sign-adhoc.sh dist/LuxaforMonitor.app
+
+      - name: Package DMG
+        run: Scripts/package-dmg.sh "${{ steps.version.outputs.version }}" dist/LuxaforMonitor.app dist
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign DMG with Sigstore/cosign (keyless)
+        run: Scripts/sigstore-sign.sh "dist/LuxaforMonitor-${{ steps.version.outputs.version }}.dmg"
+
+      - name: List release assets
+        run: ls -la dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Luxafor Monitor ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+          files: |
+            dist/LuxaforMonitor-${{ steps.version.outputs.version }}.dmg
+            dist/LuxaforMonitor-${{ steps.version.outputs.version }}.dmg.sig
+            dist/LuxaforMonitor-${{ steps.version.outputs.version }}.dmg.pem
+            dist/LuxaforMonitor-${{ steps.version.outputs.version }}.dmg.sha256
+            dist/SHA256SUMS
