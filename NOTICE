@@ -1,0 +1,35 @@
+Luxafor Monitor
+Copyright 2026 The Luxafor Monitor Contributors
+
+This product includes software developed as part of the Luxafor Monitor
+project (https://github.com/), licensed under the Apache License,
+Version 2.0. See the LICENSE file for the full license text.
+
+------------------------------------------------------------------------------
+
+Third-party runtime dependencies
+
+Luxafor Monitor has no third-party runtime dependencies. All functionality
+is implemented directly on top of Apple system frameworks (IOKit,
+AVFoundation, Accessibility/ApplicationServices, SwiftUI) that ship with
+macOS. This is a deliberate supply-chain minimization choice; see
+CONTRIBUTING.md before proposing a new dependency.
+
+------------------------------------------------------------------------------
+
+Luxafor USB HID protocol
+
+The `LuxaforKit` module implements the Luxafor device's USB HID control
+protocol (vendor ID, report byte layout, and command opcodes) as a
+clean-room implementation derived from publicly documented protocol
+information. No source code, headers, or binaries from Luxafor's own SDKs
+or drivers were copied, decompiled, or otherwise incorporated.
+
+<!-- TODO: integrator to fill in exact citation(s) from LuxaforKit's
+     implementation notes -- e.g. the specific public protocol
+     documentation, community reverse-engineering write-ups, or vendor
+     spec pages that were consulted when implementing the HID commands
+     in Sources/LuxaforKit. -->
+
+"Luxafor" is a trademark of its respective owner. This project is not
+affiliated with, endorsed by, or sponsored by Luxafor.

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Menu-bar-only app: no Dock icon, no app switcher entry. -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <key>CFBundleExecutable</key>
+    <string>__BUNDLE_EXECUTABLE__</string>
+    <key>CFBundleIdentifier</key>
+    <string>__BUNDLE_IDENTIFIER__</string>
+    <key>CFBundleName</key>
+    <string>__BUNDLE_NAME__</string>
+    <key>CFBundleDisplayName</key>
+    <string>__BUNDLE_NAME__</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleVersion</key>
+    <string>__BUNDLE_VERSION__</string>
+    <key>CFBundleShortVersionString</key>
+    <string>__BUNDLE_SHORT_VERSION__</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+
+    <!--
+      Camera/Microphone usage descriptions are REQUIRED by macOS: without
+      these keys, the app crashes as soon as it calls into AVFoundation to
+      check authorization/usage state, even though it never opens a
+      capture session.
+
+      Luxafor Monitor only ever *checks whether* the camera or microphone
+      is currently in use by some other application (a coarse, system-wide
+      "in use" flag) as one signal that you might be in a meeting. It does
+      not open, access, record, or transmit camera or microphone data,
+      ever. Keep this description honest if you edit it - it is shown
+      verbatim to the user in the permission prompt and in System
+      Settings.
+    -->
+    <key>NSCameraUsageDescription</key>
+    <string>Luxafor Monitor only checks whether the camera is currently in use by another app (e.g. Zoom or Teams) as a signal that you may be in a meeting. It never opens the camera, and never captures or transmits video.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Luxafor Monitor only checks whether the microphone is currently in use by another app (e.g. Zoom or Teams) as a signal that you may be in a meeting. It never opens the microphone, and never captures or transmits audio.</string>
+
+    <!--
+      Note: Accessibility permission (used to read Zoom/Teams window
+      titles and UI element labels) does NOT use an Info.plist usage
+      description key - unlike camera/mic, macOS has no
+      NSAccessibilityUsageDescription equivalent for this API. Do not add
+      one here; it has no effect.
+    -->
+</dict>
+</plist>
