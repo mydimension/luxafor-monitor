@@ -30,5 +30,9 @@ let package = Package(
             name: "MeetingDetectionKitTests",
             dependencies: ["MeetingDetectionKit"]
         ),
+        .testTarget(
+            name: "LuxaforMonitorAppTests",
+            dependencies: ["LuxaforMonitorApp"]
+        ),
     ]
 )
