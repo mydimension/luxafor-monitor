@@ -25,7 +25,12 @@ final class IOKitHIDReportWriter: HIDReportWriter {
 
     func write(_ report: [UInt8]) throws {
         let reportID = CFIndex(report.first ?? 0)
-        let status: IOReturn = report.withUnsafeBufferPointer { buffer in
+        // For devices that don't use numbered reports (report ID 0),
+        // IOHIDDeviceSetReport expects the ID byte to be omitted from the
+        // payload -- passing it through shifts every subsequent byte by one
+        // and the device silently ignores the malformed report.
+        let payload = reportID == 0 ? Array(report.dropFirst()) : report
+        let status: IOReturn = payload.withUnsafeBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return kIOReturnError }
             return IOHIDDeviceSetReport(device, kIOHIDReportTypeOutput, reportID, base, buffer.count)
         }
@@ -65,6 +70,7 @@ public final class LuxaforUSBDevice: LuxaforDevice {
         ]
         IOHIDManagerSetDeviceMatching(manager, matchingDictionary as CFDictionary)
         IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
+        IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
         self.manager = manager
         registerRemovalCallback(on: manager)
     }
